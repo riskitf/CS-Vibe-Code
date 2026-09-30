@@ -1,0 +1,8 @@
+# Eksperimen LangChain (scripts/langchain_*.py) -- pembanding terhadap
+# implementasi manual RAG di app/services/rag.py. Tidak wajib untuk app utama.
+langchain-core
+langchain-text-splitters
+langchain-community
+langchain-chroma
+langchain-google-genai
+pypdf

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Customer Support Chat</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+<style>
+  :root {
+    color-scheme: light;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: #f2f4f7;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #chat-container {
+    width: 100%;
+    max-width: 480px;
+    height: 90vh;
+    max-height: 700px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #chat-header {
+    padding: 16px;
+    background: #2563eb;
+    color: #fff;
+    font-weight: 600;
+    font-size: 16px;
+  }
+  #chat-history {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .bubble {
+    max-width: 75%;
+    padding: 10px 14px;
+    border-radius: 16px;
+    line-height: 1.4;
+    font-size: 14px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  .bubble.user {
+    align-self: flex-end;
+    background: #2563eb;
+    color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+  .bubble.ai {
+    align-self: flex-start;
+    background: #e5e7eb;
+    color: #111827;
+    border-bottom-left-radius: 4px;
+  }
+  .bubble.ai.pending {
+    color: #6b7280;
+    font-style: italic;
+  }
+  .bubble.ai p {
+    margin: 0 0 8px;
+  }
+  .bubble.ai p:last-child {
+    margin-bottom: 0;
+  }
+  .bubble.ai ul,
+  .bubble.ai ol {
+    margin: 4px 0 8px;
+    padding-left: 20px;
+  }
+  .bubble.ai li {
+    margin-bottom: 2px;
+  }
+  .bubble.ai code {
+    background: rgba(0, 0, 0, 0.08);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  .bubble.ai pre {
+    background: rgba(0, 0, 0, 0.08);
+    padding: 8px 10px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 4px 0 8px;
+  }
+  .bubble.ai pre code {
+    background: none;
+    padding: 0;
+  }
+  .bubble.ai a {
+    color: #2563eb;
+  }
+  .bubble.ai strong {
+    font-weight: 700;
+  }
+  #chat-form {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    border-top: 1px solid #e5e7eb;
+  }
+  #message-input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+  }
+  #message-input:focus {
+    border-color: #2563eb;
+  }
+  #send-button {
+    padding: 10px 18px;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  #send-button:disabled {
+    background: #93c5fd;
+    cursor: not-allowed;
+  }
+</style>
+</head>
+<body>
+  <div id="chat-container">
+    <div id="chat-header">Customer Support Chat</div>
+    <div id="chat-history"></div>
+    <form id="chat-form">
+      <input type="text" id="message-input" placeholder="Tulis pesan..." autocomplete="off" />
+      <button type="submit" id="send-button">Kirim</button>
+    </form>
+  </div>
+
+  <script>
+    const sessionId = crypto.randomUUID();
+
+    const chatHistory = document.getElementById("chat-history");
+    const chatForm = document.getElementById("chat-form");
+    const messageInput = document.getElementById("message-input");
+    const sendButton = document.getElementById("send-button");
+
+    function addBubble(text, sender) {
+      const bubble = document.createElement("div");
+      bubble.className = `bubble ${sender}`;
+      bubble.textContent = text;
+      chatHistory.appendChild(bubble);
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+      return bubble;
+    }
+
+    function renderMarkdownInto(bubble, markdownText) {
+      const rawHtml = marked.parse(markdownText, { breaks: true });
+      bubble.innerHTML = DOMPurify.sanitize(rawHtml);
+      chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+
+    chatForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const message = messageInput.value.trim();
+      if (!message) {
+        return;
+      }
+
+      addBubble(message, "user");
+      messageInput.value = "";
+      messageInput.focus();
+      sendButton.disabled = true;
+
+      const pendingBubble = addBubble("Mengetik...", "ai pending");
+
+      try {
+        const response = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session_id: sessionId, message: message }),
+        });
+
+        if (!response.ok) {
+          const errorBody = await response.json().catch(() => null);
+          throw new Error(errorBody?.detail || `Request gagal (${response.status})`);
+        }
+
+        const data = await response.json();
+        renderMarkdownInto(pendingBubble, data.reply);
+        pendingBubble.classList.remove("pending");
+      } catch (error) {
+        pendingBubble.textContent = `Maaf, terjadi kesalahan: ${error.message}`;
+        pendingBubble.classList.remove("pending");
+      } finally {
+        sendButton.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

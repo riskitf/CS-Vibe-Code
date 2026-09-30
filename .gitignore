@@ -1,6 +1,13 @@
 venv/
+venv-py312/
+ven/
 __pycache__/
 *.pyc
 .env
 *.db
 .chroma/
+.chroma_langchain/
+
+# Hasil runtime (bukan source code)
+app/output/*.jsonl
+app/output/*.json

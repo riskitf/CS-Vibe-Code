@@ -1,0 +1,5 @@
+# Hari 3, Step 6 (deteksi NAMA dengan NER Bahasa Indonesia).
+# Butuh Python 3.11 atau 3.12. Untuk Python 3.13+ wheel spaCy 3.7.x tidak tersedia:
+# pakai virtualenv Python 3.12, atau lewati Step 6 (Step 1-5 dan 7-10 tidak butuh file ini).
+spacy>=3.7,<3.8
+https://huggingface.co/firqaaa/id_core_news_sm/resolve/main/id_core_news_sm-any-py3-none-any.whl
